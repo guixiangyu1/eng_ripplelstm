@@ -431,7 +431,7 @@ def minibatches(data, minibatch_size):
 
     """
     x_batch, y_batch  = [], []
-    for (x, y, z) in data:
+    for (x, y) in data:
         if len(x_batch) == minibatch_size:
             yield x_batch, y_batch
             x_batch, y_batch = [], []
