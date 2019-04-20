@@ -1,6 +1,9 @@
 import os
 import tensorflow as tf
 
+from model.data_utils import segment_data
+from random import shuffle
+
 
 class BaseModel(object):
     """Generic class for general methods that are not specific to NER"""
@@ -155,9 +158,14 @@ class BaseModel(object):
         nepoch_no_imprv = 0 # for early stopping
         self.add_summary() # tensorboard
 
+        # train = segment_data(train, self.idx_to_action)
+
+
         for epoch in range(self.config.nepochs):
             self.logger.info("Epoch {:} out of {:}".format(epoch + 1,
                         self.config.nepochs))
+
+            shuffle(train)
 
             score = self.run_epoch(train, dev, epoch)     #f1的值
             self.config.lr *= self.config.lr_decay # decay learning rate

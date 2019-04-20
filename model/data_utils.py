@@ -374,7 +374,7 @@ def pad_sequences(sequences, pad_tok, nlevels=1):
 
 
 
-def minibatches(data, minibatch_size):
+def minibatches_train(train, minibatch_size):
     """
     Args:
         data: list of ((words of fw, wd, bw), (seq_len of fw, wd, bw), action) tuples
@@ -384,27 +384,69 @@ def minibatches(data, minibatch_size):
         list of tuples
 
     """
-    x_batch, y_batch, z_batch = [], [], []
-    for (x, y, z) in data:
-        if len(x_batch) == minibatch_size:
-            yield x_batch, y_batch, z_batch
-            x_batch, y_batch, z_batch = [], [], []
+    fw_words, wd_words, bw_words = [], [], []
+    fw_sequence_lengths, wd_sequence_lengths, bw_sequence_lengths = [], [], []
+    actions = []
+    for (x, y, z) in train:
+        if len(actions) == minibatch_size:
+            yield (fw_words, wd_words, bw_words), (fw_sequence_lengths, wd_sequence_lengths, bw_sequence_lengths), actions
+            fw_words, wd_words, bw_words = [], [], []
+            fw_sequence_lengths, wd_sequence_lengths, bw_sequence_lengths = [], [], []
+            actions = []
         # data may be (list of (list of char_id, word_id), list of (tags_id))
 
-        fw_words, wd_words, bw_words = x
-        if type(fw_words[0]) is tuple:
-            fw_words = zip(*fw_words)
-            wd_words = zip(*wd_words)
-            bw_words = zip(*bw_words)
-            x = (fw_words, wd_words, bw_words)
+        fw_w, wd_w, bw_w = x
+        fw_l, wd_l, bw_l = y
+
+        if type(fw_w[0]) is tuple:
+            fw_w = zip(*fw_w)
+            wd_w = zip(*wd_w)
+            bw_w = zip(*bw_w)
+
+        fw_words.append(fw_w)
+        wd_words.append(wd_w)
+        bw_words.append(bw_w)
+
+        fw_sequence_lengths.append(fw_l)
+        wd_sequence_lengths.append(wd_l)
+        bw_sequence_lengths.append(bw_l)
+
+        actions.append(z)
+
+    if len(actions) != 0:
+        yield (fw_words, wd_words, bw_words), (fw_sequence_lengths, wd_sequence_lengths, bw_sequence_lengths), actions
 
 
+
+def minibatches(data, minibatch_size):
+    """
+    minibatch test and dev words
+
+    Args:
+        data: generator of (sentence, tags, actions) tuples
+        minibatch_size: (int)
+
+    Yields:
+        list of tuples
+
+    """
+    x_batch, y_batch  = [], []
+    for (x, y, z) in data:
+        if len(x_batch) == minibatch_size:
+            yield x_batch, y_batch
+            x_batch, y_batch = [], []
+        # data may be (list of (list of char_id, word_id), list of (tags_id))
+
+        # if type(x[0]) == tuple:
+        #     x = zip(*x)  # zip(*x) 生成可迭代对象。 x本身是个list，*代表变长参数输入，几个tuple.最后得到x是一个对象,俩tuple
         x_batch += [x]   # 可迭代对象的一个list，每个对象x包含一个tuple(list[char_ids]),tuple(word_ids)的迭代器
         y_batch += [y]
-        z_batch += [z]
+
 
     if len(x_batch) != 0:
-        yield x_batch, y_batch, z_batch
+        yield x_batch, y_batch
+
+
 
 def segment_data(dataset, idx2ac):
     '''

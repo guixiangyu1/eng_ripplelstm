@@ -2,7 +2,8 @@ import numpy as np
 import os
 import tensorflow as tf
 
-from .data_utils import minibatches, pad_sequences, get_chunks_from_act, segment_data, generate_nextstep_data
+from .data_utils import minibatches_train, pad_sequences, get_chunks_from_act, segment_data, generate_nextstep_data, \
+    minibatches
 from .general_utils import Progbar
 from .base_model import BaseModel
 
@@ -76,9 +77,8 @@ class RippleModel(BaseModel):
         """Given some data, pad it and build a feed dictionary
 
         Args:
-            words: list of sentences. A sentence is a list of ids of a list of
-                words. A word is a list of ids
-            labels: list of ids
+            words: (fw_words, wd_words, bw_words),fw_words is to be feed into self.fw_words
+            sequence_lengths: list of sentence length, batch size long
             lr: (float) learning rate
             dropout: (float) keep prob
 
@@ -88,21 +88,7 @@ class RippleModel(BaseModel):
         """
         # perform padding of the given data
         all_word_ids, all_char_ids, all_word_lengths = [], [], []
-        fw_words, wd_words, bw_words = [], [], []
-        fw_sequence_lengths, wd_sequence_lengths, bw_sequence_lengths = [], [], []
-        for sentence in words:   #这里的words是按句子划分的
-            fw_words.append(sentence[0])
-            wd_words.append(sentence[1])
-            bw_words.append(sentence[2])
-
-        for length in sequence_lengths:
-            fw_sequence_lengths.append(length[0])
-            wd_sequence_lengths.append(length[1])
-            bw_sequence_lengths.append(length[2])
-
-        words = (fw_words, wd_words, bw_words)
-
-        for each_words in words:   #这里的words是按前中后三部分划分的
+        for each_words in words:
             if self.config.use_chars:
                 char_ids, word_ids = zip(*each_words)  # zip参数要求是iterable即可(batch(sentence[char]))
                 word_ids, _ = pad_sequences(word_ids, 0)
@@ -118,7 +104,6 @@ class RippleModel(BaseModel):
 
 
 
-
         # 两种数据格式
         # word_ids  [[1,2,3,4,5,0,0,0], [1,2,4,0,0,0,0,0], [1,3,4,5,6,7,8,9]]  sequence_lengths [5,3,8]
         # char_ids  [([1,2,3,0,0,0],[1,2,4,5,0,0],[0,0,0,0,0,0]),(),()] word_length ([3,4,0],[..,..,..],[])
@@ -130,9 +115,9 @@ class RippleModel(BaseModel):
             self.wd_word_ids: all_word_ids[1],
             self.bw_word_ids: all_word_ids[2],
 
-            self.fw_sequence_lengths: fw_sequence_lengths,
-            self.wd_sequence_lengths: wd_sequence_lengths,
-            self.bw_sequence_lengths: bw_sequence_lengths
+            self.fw_sequence_lengths: sequence_lengths[0],
+            self.wd_sequence_lengths: sequence_lengths[1],
+            self.bw_sequence_lengths: sequence_lengths[2]
 
         }
 
@@ -437,7 +422,7 @@ class RippleModel(BaseModel):
         # iterate over dataset
         # generate_segment_data(train)
 
-        for i, (words, sequence_lengths, actions) in enumerate(minibatches(train, batch_size)):
+        for i, (words, sequence_lengths, actions) in enumerate(minibatches_train(train, batch_size)):
             # 修改了minibatch， 不变换数据形式，zip， 等下一步再做
             # words, sequence_lengths, actions = segment_data(all_words, all_actions, self.idx_to_action)
             fd = self.get_feed_dict(words, sequence_lengths, actions, self.config.lr,
@@ -445,8 +430,6 @@ class RippleModel(BaseModel):
 
             _, train_loss, summary = self.sess.run(
                 [self.train_op, self.loss, self.merged], feed_dict=fd)
-            # embedding = self.sess.run([self.fw_word_embeddings], feed_dict=fd)
-            # print(embedding)
 
             prog.update(i + 1, [("train loss", train_loss)])
 
@@ -474,7 +457,7 @@ class RippleModel(BaseModel):
         accs = []
         correct_preds, total_correct, total_preds = 0., 0., 0.
 
-        for words, labels, actions in minibatches(test, self.config.batch_size):
+        for words, actions in minibatches(test, self.config.batch_size):
             actions_pred = self.predict_batch(words)
             for act, act_pred in zip(actions, actions_pred):
                 accs += [a==b for (a,b) in zip(act, act_pred)]
