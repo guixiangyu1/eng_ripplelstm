@@ -21,7 +21,7 @@ def main():
     # create datasets [(char_ids), word_id]
     dev = CoNLLDataset(config.filename_dev, config.processing_word,
                         config.processing_action, config.max_iter)
-    train = CoNLLDataset(config.filename_test, config.processing_word,
+    train = CoNLLDataset(config.filename_train, config.processing_word,
                          config.processing_action, config.max_iter)
     test = CoNLLDataset(config.filename_test, config.processing_word,
                        config.processing_action, config.max_iter)
@@ -29,7 +29,7 @@ def main():
     train = segment_data(train, model.idx_to_action)
 
     # train model
-    model.train(train, dev)
+    model.train(train, test)
 
 
 
