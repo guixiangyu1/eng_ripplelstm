@@ -1,4 +1,4 @@
-from model.data_utils import CoNLLDataset, get_processing_word
+from model.data_utils import CoNLLDataset, segment_data
 from model.config import Config
 
 from model.ripple_model import RippleModel
@@ -19,20 +19,17 @@ def main():
     # model.reinitialize_weights("proj")
 
     # create datasets [(char_ids), word_id]
-    processing_word = get_processing_word(lowercase=True)
-    dev = CoNLLDataset(config.filename_dev, processing_word)
-    train = CoNLLDataset(config.filename_train, processing_word)
-    test = CoNLLDataset(config.filename_test, processing_word)
+    dev = CoNLLDataset(config.filename_dev, config.processing_word,
+                        config.processing_action, config.max_iter)
+    train = CoNLLDataset(config.filename_train, config.processing_word,
+                         config.processing_action, config.max_iter)
+    test = CoNLLDataset(config.filename_test, config.processing_word,
+                       config.processing_action, config.max_iter)
 
-    train4rp = CoNLLdata4ripple(train, processing_word=config.processing_word,
-                                    processing_tag=config.processing_tag)
-    dev4rp = CoNLLdata4ripple(dev, processing_word=config.processing_word,
-                                  processing_tag=config.processing_tag)
-    test4rp = CoNLLdata4ripple(test, processing_word=config.processing_word,
-                                   processing_tag=config.processing_tag)
+    train4rp = segment_data(train, model.idx_to_action)
 
     # train model
-    model.train(train, dev)
+    model.train(train4rp, dev)
 
 
 

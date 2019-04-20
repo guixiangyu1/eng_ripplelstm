@@ -14,8 +14,8 @@ class RippleModel(BaseModel):
 
     def __init__(self, config):
         super(RippleModel, self).__init__(config)
-        self.idx_to_tag = {idx: tag for tag, idx in
-                           self.config.vocab_tags.items()}
+        # self.idx_to_tag = {idx: tag for tag, idx in
+        #                    self.config.vocab_tags.items()}
         self.idx_to_action = {idx: action for action, idx in
                               self.config.vocab_actions.items()}
 
@@ -316,9 +316,9 @@ class RippleModel(BaseModel):
 
         with tf.variable_scope("proj"):
             W = tf.get_variable("W", dtype=tf.float32,
-                shape=[2 * (self.config.hidden_size_lstm + self.config.hidden_size_win), self.config.ntags])
+                shape=[2 * (self.config.hidden_size_lstm + self.config.hidden_size_win), self.config.nactions])
 
-            b = tf.get_variable("b", shape=[self.config.ntags],
+            b = tf.get_variable("b", shape=[self.config.nactions],
                                 dtype=tf.float32, initializer=tf.zeros_initializer())
 
             # nsteps = tf.shape(output)[1]
@@ -420,9 +420,9 @@ class RippleModel(BaseModel):
         # iterate over dataset
         # generate_segment_data(train)
 
-        for i, (all_words, all_labels, all_actions) in enumerate(minibatches(train, batch_size)):
+        for i, (words, sequence_lengths, actions) in enumerate(minibatches(train, batch_size)):
             # 修改了minibatch， 不变换数据形式，zip， 等下一步再做
-            words, sequence_lengths, actions = segment_data(all_words, all_actions, self.idx_to_action)
+            # words, sequence_lengths, actions = segment_data(all_words, all_actions, self.idx_to_action)
             fd = self.get_feed_dict(words, sequence_lengths, actions, self.config.lr,
                                        self.config.dropout)
 

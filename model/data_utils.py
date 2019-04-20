@@ -40,7 +40,7 @@ class CoNLLDataset(object):
         ```
 
     """
-    def __init__(self, filename, processing_word=None, processing_tag=None,
+    def __init__(self, filename, processing_word=None,
                  processing_action=None, max_iter=None):
         """
         Args:
@@ -52,7 +52,7 @@ class CoNLLDataset(object):
         """
         self.filename = filename
         self.processing_word = processing_word
-        self.processing_tag = processing_tag
+        # self.processing_tag = processing_tag
         self.processing_action = processing_action
         self.max_iter = max_iter
         self.length = None
@@ -377,7 +377,7 @@ def pad_sequences(sequences, pad_tok, nlevels=1):
 def minibatches(data, minibatch_size):
     """
     Args:
-        data: generator of (sentence, tags, actions) tuples
+        data: list of ((words of fw, wd, bw), (seq_len of fw, wd, bw), action) tuples
         minibatch_size: (int)
 
     Yields:
@@ -391,8 +391,14 @@ def minibatches(data, minibatch_size):
             x_batch, y_batch, z_batch = [], [], []
         # data may be (list of (list of char_id, word_id), list of (tags_id))
 
-        # if type(x[0]) == tuple:
-        #     x = zip(*x)  # zip(*x) 生成可迭代对象。 x本身是个list，*代表变长参数输入，几个tuple.最后得到x是一个对象,俩tuple
+        fw_words, wd_words, bw_words = x
+        if type(fw_words[0]) is tuple:
+            fw_words = zip(*fw_words)
+            wd_words = zip(*wd_words)
+            bw_words = zip(*bw_words)
+            x = (fw_words, wd_words, bw_words)
+
+
         x_batch += [x]   # 可迭代对象的一个list，每个对象x包含一个tuple(list[char_ids]),tuple(word_ids)的迭代器
         y_batch += [y]
         z_batch += [z]
@@ -400,22 +406,23 @@ def minibatches(data, minibatch_size):
     if len(x_batch) != 0:
         yield x_batch, y_batch, z_batch
 
-def segment_data(all_words, all_actions, idx2ac):
+def segment_data(dataset, idx2ac):
     '''
     把输入的一个batch的句子，转化成n多个可用的、符合nn网络的数据，用于训练
     :param all_words:
     :param all_actions:
     :return:
     '''
-    fw_words = []
-    bw_words = []
-    wd_words = []
-    fw_sequence_lengths, wd_sequence_lengths, bw_sequence_lengths = [], [], []
+    fw_words = None
+    bw_words = None
+    wd_words = None
+    data = []
+    # fw_sequence_lengths, wd_sequence_lengths, bw_sequence_lengths = [], [], []
 
-    actions = []
+    # actions = []
 
 
-    for one_sent_words, one_sent_actions in zip(all_words, all_actions):
+    for one_sent_words, one_sent_actions in dataset:
         ac_length = len(one_sent_actions)
         fw_sequence_length = 0
         wd_sequence_length = 1
@@ -423,24 +430,28 @@ def segment_data(all_words, all_actions, idx2ac):
 
 
         for ac in one_sent_actions:
-            actions.append(ac)
-            fw_sequence_lengths.append(fw_sequence_length)
-            wd_sequence_lengths.append(wd_sequence_length)
-            bw_sequence_lengths.append(bw_sequence_length)
+            # actions.append(ac)
+            # fw_sequence_lengths.append(fw_sequence_length)
+            # wd_sequence_lengths.append(wd_sequence_length)
+            # bw_sequence_lengths.append(bw_sequence_length)
 
             if fw_sequence_length == 0:
 
-                fw_words.append(one_sent_words[0:1])
+                fw_words = one_sent_words[0:1]
             else:
-                fw_words.append(one_sent_words[:fw_sequence_length])
+                fw_words = one_sent_words[:fw_sequence_length]
 
-            wd_words.append(one_sent_words[fw_sequence_length:(fw_sequence_length + wd_sequence_length)])
+            wd_words = one_sent_words[fw_sequence_length:(fw_sequence_length + wd_sequence_length)]
 
             if bw_sequence_length == 0:
-                bw_words.append(one_sent_words[0:1])
-                continue
+                bw_words = one_sent_words[0:1]
+                # continue
             else:
-                bw_words.append(one_sent_words[fw_sequence_length + wd_sequence_length : ])
+                bw_words = one_sent_words[fw_sequence_length + wd_sequence_length : ]
+
+            data.append(((fw_words, wd_words, bw_words),
+                         (fw_sequence_length, wd_sequence_length, bw_sequence_length),
+                         ac))
 
             # refresh the fw wd bw length
             bw_sequence_length -= 1
@@ -450,11 +461,12 @@ def segment_data(all_words, all_actions, idx2ac):
 
             if idx2ac[ac] == "FUSION":
                 wd_sequence_length += 1
-    if type(fw_words[0][0]) is tuple:
-        fw_words = [zip(*sentence) for sentence in fw_words]
-        wd_words = [zip(*sentence) for sentence in wd_words]
-        bw_words = [zip(*sentence) for sentence in bw_words]
-    return (fw_words, wd_words, bw_words), (fw_sequence_lengths, wd_sequence_lengths, bw_sequence_lengths), actions
+    # if type(fw_words[0][0]) is tuple:
+    #     fw_words = [zip(*sentence) for sentence in fw_words]
+    #     wd_words = [zip(*sentence) for sentence in wd_words]
+    #     bw_words = [zip(*sentence) for sentence in bw_words]
+
+    return data
 
 # def generate_segment_data()
 
@@ -600,4 +612,3 @@ def get_chunks_from_act(act, act_vocab):
             bw_len -= 1
     return chunks
 
-def CoNLLdata4ripple(dataset):

@@ -37,20 +37,21 @@ class Config():
         """
         # 1. vocabulary  词表   all dict!!
         self.vocab_words = load_vocab(self.filename_words)
-        self.vocab_tags  = load_vocab(self.filename_tags)
+        # self.vocab_tags  = load_vocab(self.filename_tags)
         self.vocab_chars = load_vocab(self.filename_chars)
         self.vocab_actions = load_vocab(self.filename_actions)
 
         self.nwords     = len(self.vocab_words)
         self.nchars     = len(self.vocab_chars)
-        self.ntags      = len(self.vocab_tags)
+        self.nactions      = len(self.vocab_actions)
+
 
         # 2. get processing functions that map str -> id   函数输入str的word，输出（list of charID, word id）
         self.processing_word = get_processing_word(self.vocab_words,
                 self.vocab_chars, lowercase=True, chars=self.use_chars)
         #输入str类型的tag，输出tag的ID
-        self.processing_tag  = get_processing_word(self.vocab_tags,
-                lowercase=False, allow_unk=False)
+        # self.processing_tag  = get_processing_word(self.vocab_tags,
+        #         lowercase=False, allow_unk=False)
 
         self.processing_action = get_processing_word(self.vocab_actions,
                 lowercase=False, allow_unk=False)
@@ -94,7 +95,7 @@ class Config():
     train_embeddings = False
     nepochs          = 30
     dropout          = 0.5
-    batch_size       = 3
+    batch_size       = 500
     lr_method        = "adam"
     lr               = 0.001
     lr_decay         = 1.0
