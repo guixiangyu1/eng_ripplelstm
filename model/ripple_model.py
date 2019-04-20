@@ -88,7 +88,21 @@ class RippleModel(BaseModel):
         """
         # perform padding of the given data
         all_word_ids, all_char_ids, all_word_lengths = [], [], []
-        for each_words in words:
+        fw_words, wd_words, bw_words = [], [], []
+        fw_sequence_lengths, wd_sequence_lengths, bw_sequence_lengths = [], [], []
+        for sentence in words:   #这里的words是按句子划分的
+            fw_words.append(sentence[0])
+            wd_words.append(sentence[1])
+            bw_words.append(sentence[2])
+
+        for length in sequence_lengths:
+            fw_sequence_lengths.append(length[0])
+            wd_sequence_lengths.append(length[1])
+            bw_sequence_lengths.append(length[2])
+
+        words = (fw_words, wd_words, bw_words)
+
+        for each_words in words:   #这里的words是按前中后三部分划分的
             if self.config.use_chars:
                 char_ids, word_ids = zip(*each_words)  # zip参数要求是iterable即可(batch(sentence[char]))
                 word_ids, _ = pad_sequences(word_ids, 0)
@@ -104,6 +118,7 @@ class RippleModel(BaseModel):
 
 
 
+
         # 两种数据格式
         # word_ids  [[1,2,3,4,5,0,0,0], [1,2,4,0,0,0,0,0], [1,3,4,5,6,7,8,9]]  sequence_lengths [5,3,8]
         # char_ids  [([1,2,3,0,0,0],[1,2,4,5,0,0],[0,0,0,0,0,0]),(),()] word_length ([3,4,0],[..,..,..],[])
@@ -115,9 +130,9 @@ class RippleModel(BaseModel):
             self.wd_word_ids: all_word_ids[1],
             self.bw_word_ids: all_word_ids[2],
 
-            self.fw_sequence_lengths: sequence_lengths[0],
-            self.wd_sequence_lengths: sequence_lengths[1],
-            self.bw_sequence_lengths: sequence_lengths[2]
+            self.fw_sequence_lengths: fw_sequence_lengths,
+            self.wd_sequence_lengths: wd_sequence_lengths,
+            self.bw_sequence_lengths: bw_sequence_lengths
 
         }
 
@@ -166,6 +181,7 @@ class RippleModel(BaseModel):
             # 已经没有文字了，只有word_id
             fw_word_embeddings = tf.nn.embedding_lookup(self._word_embeddings,
                                                         self.fw_word_ids, name="fw_word_embeddings")
+            print(fw_word_embeddings)
             bw_word_embeddings = tf.nn.embedding_lookup(self._word_embeddings,
                                                         self.bw_word_ids, name="bw_word_embeddings")
             wd_word_embeddings = tf.nn.embedding_lookup(self._word_embeddings,
@@ -270,6 +286,7 @@ class RippleModel(BaseModel):
         self.bw_word_embeddings = tf.nn.dropout(bw_word_embeddings, self.dropout)
         self.wd_word_embeddings = tf.nn.dropout(wd_word_embeddings, self.dropout)
 
+        print(self.fw_sequence_lengths)
         self.fw_sequence_lengths_with_begin = self.fw_sequence_lengths + tf.ones([s[0]], dtype=tf.int32)
         self.bw_sequence_lengths_wint_end = self.bw_sequence_lengths + tf.ones([s[0]], dtype=tf.int32)
 
@@ -428,6 +445,8 @@ class RippleModel(BaseModel):
 
             _, train_loss, summary = self.sess.run(
                 [self.train_op, self.loss, self.merged], feed_dict=fd)
+            # embedding = self.sess.run([self.fw_word_embeddings], feed_dict=fd)
+            # print(embedding)
 
             prog.update(i + 1, [("train loss", train_loss)])
 
