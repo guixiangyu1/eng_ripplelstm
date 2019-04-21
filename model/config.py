@@ -97,7 +97,7 @@ class Config():
     dropout          = 0.5
     batch_size       = 200
     lr_method        = "adam"
-    lr               = 0.001
+    lr               = 0.0001
     lr_decay         = 1.0
     clip             = -5.0 # if negative, no clipping
     nepoch_no_imprv  = 3
@@ -105,7 +105,7 @@ class Config():
     # model hyperparameters
     hidden_size_char = 100 # lstm on chars
     hidden_size_lstm = 300 # lstm on word embeddings
-    hidden_size_win = 150
+    hidden_size_win = 100
 
     # NOTE: if both chars and crf, only 1.6x slower on GPU
     use_crf = False # if crf, training is 1.7x slower on CPU
