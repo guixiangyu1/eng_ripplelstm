@@ -29,7 +29,7 @@ def main():
     train = segment_data(train, model.idx_to_action)
 
     # train model
-    model.train(train, test)
+    model.train(train, dev, test)
 
 
 

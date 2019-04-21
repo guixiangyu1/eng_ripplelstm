@@ -166,7 +166,7 @@ class RippleModel(BaseModel):
             # 已经没有文字了，只有word_id
             fw_word_embeddings = tf.nn.embedding_lookup(self._word_embeddings,
                                                         self.fw_word_ids, name="fw_word_embeddings")
-            print(fw_word_embeddings)
+            # print(fw_word_embeddings)
             bw_word_embeddings = tf.nn.embedding_lookup(self._word_embeddings,
                                                         self.bw_word_ids, name="bw_word_embeddings")
             wd_word_embeddings = tf.nn.embedding_lookup(self._word_embeddings,
@@ -271,7 +271,7 @@ class RippleModel(BaseModel):
         self.bw_word_embeddings = tf.nn.dropout(bw_word_embeddings, self.dropout)
         self.wd_word_embeddings = tf.nn.dropout(wd_word_embeddings, self.dropout)
 
-        print(self.fw_sequence_lengths)
+        # print(self.fw_sequence_lengths)
         self.fw_sequence_lengths_with_begin = self.fw_sequence_lengths + tf.ones([s[0]], dtype=tf.int32)
         self.bw_sequence_lengths_wint_end = self.bw_sequence_lengths + tf.ones([s[0]], dtype=tf.int32)
 
@@ -471,6 +471,11 @@ class RippleModel(BaseModel):
         r = correct_preds / total_correct if correct_preds > 0 else 0
         f1 = 2 * p * r / (p + r) if correct_preds > 0 else 0
         acc = np.mean(accs)
+
+        print("correct_preds: ", correct_preds)
+        print("total_preds: ", total_preds)
+        print("total_correct: ", total_correct)
+
         return {"acc": 100 * acc, "precision": 100 * p, "recall": 100 * r, "f1": 100 * f1}
 
         #     for lab, lab_pred, length in zip(labels, labels_pred,

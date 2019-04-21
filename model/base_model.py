@@ -28,8 +28,7 @@ class BaseModel(object):
         init = tf.variables_initializer(variables)
         self.sess.run(init)
 
-
-    def add_train_op(self, lr_method, lr, loss, clip=-1, mode=None):
+    def add_train_op(self, lr_method, lr, loss, clip=-1, indicate=None):
         """Defines self.train_op that performs an update on a batch
 
         Args:
@@ -39,10 +38,10 @@ class BaseModel(object):
             clip: (python float) clipping of gradient. If < 0, no clipping
 
         """
-        _lr_m = lr_method.lower() # lower to make sure
+        _lr_m = lr_method.lower()  # lower to make sure
 
         with tf.variable_scope("train_step"):
-            if _lr_m == 'adam': # sgd method
+            if _lr_m == 'adam':  # sgd method
                 optimizer = tf.train.AdamOptimizer(lr)
             elif _lr_m == 'adagrad':
                 optimizer = tf.train.AdagradOptimizer(lr)
@@ -53,61 +52,45 @@ class BaseModel(object):
             else:
                 raise NotImplementedError("Unknown method {}".format(_lr_m))
 
-            # *(list)将自动解析参数
-            # if clip > 0: # gradient clipping if clip is positive  对梯度进行裁剪，防止梯度爆炸
-            #     if mode == "train":
-            #         grads, vs     = zip(*optimizer.compute_gradients(loss, [v for v in tf.trainable_variables() if v.name != "words/_word_embeddings:0"]))
-            #         grads, gnorm  = tf.clip_by_global_norm(grads, clip)
-            #     else:
-            #         grads, vs     = zip(*optimizer.compute_gradients(loss,[v for v in tf.trainable_variables() if v.name == "words/_word_embeddings:0"] ))
-            #         grads, gnorm  = tf.clip_by_global_norm(grads, clip)
-            #     self.train_op = optimizer.apply_gradients(zip(grads, vs))
-            # else:
-            #     if mode == "train":
-            #         grads = optimizer.compute_gradients(loss, [v for v in tf.trainable_variables() if v.name != "words/_word_embeddings:0"])
-            #     if mode == "fine_tuning":
-            #         print([v.name for v in tf.trainable_variables()])
-            #         grads = optimizer.compute_gradients(loss, [v for v in tf.trainable_variables() if v.name == "words/_word_embeddings:0"])
-            #     elif mode==None:
-            #         grads = optimizer.compute_gradients(loss, [v for v in tf.trainable_variables() if
-            #                                                    v.name == "words/_word_embeddings:0"])
-            #     self.train_op = optimizer.apply_gradients(grads)
-
-
-
-            # 新的尝试
-            other_grads, other_vs = zip(*optimizer.compute_gradients(loss, [v for v in tf.trainable_variables() if
-                                                                            v.name != "words/_word_embeddings:0"]))
-            ft_grads, ft_vs = zip(*optimizer.compute_gradients(loss, [v for v in tf.trainable_variables() if
-                                                                      v.name == "words/_word_embeddings:0"]))
-            if clip>0:
-                if mode == "train":
-                    grads, gnorm = tf.clip_by_global_norm(other_grads, clip)
-                    self.train_op = optimizer.apply_gradients(zip(grads, other_vs))
-                if mode == "fine_tuning":
-                    grads, gnorm = tf.clip_by_global_norm(ft_grads, clip)
-                    self.train_op = optimizer.apply_gradients(zip(grads, ft_vs))
+            if clip > 0:  # gradient clipping if clip is positive  对梯度进行裁剪，防止梯度爆炸
+                if indicate == "train":
+                    grads, vs = zip(*optimizer.compute_gradients(loss, [v for v in tf.trainable_variables() if
+                                                                        v.name != "words/_word_embeddings:0"]))
+                    grads, gnorm = tf.clip_by_global_norm(grads, clip)
+                elif indicate == "fine_tuning":
+                    grads, vs = zip(*optimizer.compute_gradients(loss, [v for v in tf.trainable_variables() if
+                                                                        v.name == "words/_word_embeddings:0"]))
+                    grads, gnorm = tf.clip_by_global_norm(grads, clip)
+                self.train_op = optimizer.apply_gradients(zip(grads, vs))
             else:
-                if mode == "train":
-                    self.train_op = optimizer.apply_gradients(zip(other_grads, other_vs))
-                if mode == "fine_tuning":
-                    self.train_op = optimizer.apply_gradients(zip(ft_grads, ft_vs))
+                # self.train_op = optimizer.minimize(loss,var_list=tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, "words/_word_embeddings:0"))
+                # var_list=tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, "words/_word_embeddings:0")
+                if indicate == "train":
+                    grads = optimizer.compute_gradients(loss, [v for v in tf.trainable_variables() if
+                                                               v.name != "words/_word_embeddings:0"])
+                    # self.train_op = optimizer.minimize(loss)
+                    # print([v.name for v in tf.trainable_variables()])
+
+                    # opt_vars = [v for v in tf.trainable_variables() if v.name != "words/_word_embeddings:0"]
+                    # print([v.name for v in opt_vars])
+                    # self.train_op = optimizer.minimize(loss, var_list=opt_vars)
+
+                if indicate == "fine_tuning":
+                    print([v.name for v in tf.trainable_variables()])
+                    grads = optimizer.compute_gradients(loss, [v for v in tf.trainable_variables() if
+                                                               v.name == "words/_word_embeddings:0"])
+
+                self.train_op = optimizer.apply_gradients(grads)
 
 
-    def initialize_session(self, mode=None):
+    def initialize_session(self):
         """Defines self.sess and initialize the variables"""
         self.logger.info("Initializing tf session")
         self.sess = tf.Session()
         self.sess.run(tf.global_variables_initializer())
-        # if mode == "fine_tuning":
-        #     vars_restore = [v for v in tf.trainable_variables() if v.name != "words/_word_embeddings:0"]
-        #     self.saver = tf.train.Saver(vars_restore)
-        # else:
-        #     self.saver = tf.train.Saver()
-        # 新尝试
         self.saver = tf.train.Saver()
 
-    def restore_session(self, dir_model):
+    def restore_session(self, dir_model, indicate=None):
         """Reload weights into session
 
         Args:
@@ -116,8 +99,11 @@ class BaseModel(object):
 
         """
         self.logger.info("Reloading the latest trained model...")
+        if indicate == "fine_tuning":
+            vars_restore = [v for v in tf.trainable_variables() if v.name != "words/_word_embeddings:0"]
+            self.saver = tf.train.Saver(vars_restore)
         self.saver.restore(self.sess, dir_model)
-        # self.saver = tf.train.Saver()
+        self.saver = tf.train.Saver()
 
 
 
@@ -146,7 +132,7 @@ class BaseModel(object):
                 self.sess.graph)
 
 
-    def train(self, train, dev):
+    def train(self, train, dev, test):
         """Performs training with early stopping and lr exponential decay
 
         Args:
@@ -167,7 +153,8 @@ class BaseModel(object):
 
             shuffle(train)
 
-            score = self.run_epoch(train, dev, epoch)     #f1的值
+            score = self.run_epoch(train, test, epoch)     #f1的值
+            self.evaluate(dev)
             self.config.lr *= self.config.lr_decay # decay learning rate
 
             # early stopping and saving best parameters
