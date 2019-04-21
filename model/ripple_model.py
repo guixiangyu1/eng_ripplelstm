@@ -360,7 +360,7 @@ class RippleModel(BaseModel):
 
 
 
-    def build(self, mode=None):
+    def build(self, indicate=None):
         # NER specific functions
 
         self.add_placeholders()
@@ -371,9 +371,9 @@ class RippleModel(BaseModel):
 
         # Generic functions that add training op and initialize session
         self.add_train_op(self.config.lr_method, self.lr, self.loss,
-                          self.config.clip, mode=mode)
+                          self.config.clip, indicate=indicate)
 
-        self.initialize_session(mode=mode)  # now self.sess is defined and vars are init
+        self.initialize_session()  # now self.sess is defined and vars are init
 
     def predict_batch(self, words):
         """
