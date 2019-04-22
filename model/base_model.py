@@ -142,9 +142,9 @@ class BaseModel(object):
         """
         best_score = 0
         nepoch_no_imprv = 0 # for early stopping
-        self.add_summary() # tensorboard
+        # self.add_summary() # tensorboard
 
-        # train = segment_data(train, self.idx_to_action)
+
 
 
         for epoch in range(self.config.nepochs):
