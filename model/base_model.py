@@ -153,8 +153,8 @@ class BaseModel(object):
 
             shuffle(train)
 
-            score = self.run_epoch(train, test, epoch)     #f1的值
-            self.evaluate(dev)
+            score = self.run_epoch(train, dev, epoch)     #f1的值
+            self.evaluate(test)
             self.config.lr *= self.config.lr_decay # decay learning rate
 
             # early stopping and saving best parameters
