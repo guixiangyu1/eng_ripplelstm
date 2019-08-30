@@ -460,7 +460,7 @@ class RippleModel(BaseModel):
         accs = []
         correct_preds, total_correct, total_preds = 0., 0., 0.
 
-        with open("results/tag_pred.txt", "w") as f:
+        with open("results/eng_wel_dyn.txt", "w") as f:
             for words, actions in minibatches(test, self.config.batch_size):
                 actions_pred = self.predict_batch(words)
                 for act, act_pred in zip(actions, actions_pred):
