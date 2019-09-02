@@ -74,7 +74,7 @@ class Config():
     filename_glove = "../glove.6B.300d.txt"
     # trimmed embeddings (created from glove_filename with build_data.py)
     filename_trimmed = "data/glove.6B.{}d.trimmed.npz".format(dim_word)
-    use_pretrained = False
+    use_pretrained = True
 
     # dataset
     filename_dev = "data/valid.txt"
